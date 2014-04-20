@@ -3,6 +3,16 @@
 bin/
 setenv.sh
 sll_bs.log
+src/*/.depend
+
+src/backend/arithmtest
+src/backend/arithmtest.c
+src/backend/arithmtest_emit
+
+src/driver/driver
+
+src/deep_pat/deep_pat_test
+
 src/camlp5-6.11.tgz
 src/camlp5-6.11/
 src/checked/
@@ -10,6 +20,10 @@ src/logger/
 src/ocaml-4.01.0.tar.gz
 src/ocaml-4.01.0/
 src/ostap/
+
 src/parser/parser
+src/parser/parser_test
+
 src/sll/arithmtest
 src/typeutil/
+
