@@ -4,7 +4,8 @@ INCLUDE = \
 	-I ${OOPS_SRC}/typeutil/src \
 	-I ${OOPS_SRC}/ostap/src \
 	-I ${OOPS_SRC}/ostap/util \
-	-I ../sll
+	-I ../sll \
+	-I ../parser
 
 LIBS = \
 	typeutil.cmxa \
@@ -13,6 +14,7 @@ LIBS = \
 	../sll/sll.cmx \
 	../sll/arithm.cmx \
 	../sll/interpret.cmx \
+	../parser/parser.cmx
 
 CAMLC_FLAGS = \
 	-c -rectypes \
