@@ -19,16 +19,26 @@ let defs_splitter xs =
     | []                           -> (fdefs, gdefs)
   in helper xs [] []
 
+
 ostap (
-  program_parser[expr_parser][g_def_parser]:
-    defs:(fun_def[expr_parser][g_def_parser])* -"." term:expression[expr_parser] {
-      let (fdefs, gdefs) = List.concat defs |> defs_splitter  in
-      make_program fdefs gdefs term
-    }
-  ;
-  fun_def[expr_parser][g_def_parser]:
-    f_rule[expr_parser] | g_def_parser
-  ;
+  program_parser[decl_parser][term_parser]:
+    decls:(decl_parser)* -"." parsed_program:term_parser[decls] { parsed_program }
+)
+    
+
+(*pure SLL expression parser "declarations" is a list of declarations
+       (each decl is a list itself, so "declarations" is a list of lists)
+      that were met before dot*)
+ostap (
+  pure_term[expr_parser][declarations]:
+      single_expr:expr_parser {
+        let (fdefs, gdefs) = List.concat declarations |> defs_splitter  in
+        make_program fdefs gdefs single_expr
+      }
+)
+
+(*pure SLL f and g functions definition*)
+ostap (
   f_rule[expr_parser]:
     name:ident -"(" fargs:list0[ident] -")" -"=" body:expr_parser
     { [`FRule (name >$ fargs >= body)] }
@@ -38,15 +48,25 @@ ostap (
         -"=" gbody:expr_parser
     { [`GRule (name $ (pname +> pargs, gargs) => gbody)] }
   ;
-  args_list[expr_parser]: -"(" list0[expr_parser] -")"
-  ;
+  ident_ctr_args:
+    pargs:(-"(" list0[ident] -")")? { list_of_opt pargs }
+)
+
+(*pure SLL function declaration*)
+
+ostap (
+  pure_decl[expr_parser]:
+    f_rule[expr_parser] | g_rule[expr_parser]
+)
+ 
+
+ostap (
   expression[expr_parser]:
       constructor[expr_parser]
     | fun_call[expr_parser]
     | v:ident  { `Var v }
   ;
-  ident_ctr_args:
-    pargs:(-"(" list0[ident] -")")? { list_of_opt pargs }
+  args_list[expr_parser]: -"(" list0[expr_parser] -")"
   ;
   constructor[expr_parser]:
     cname:cnt  args:args_list[expr_parser]?
@@ -56,6 +76,24 @@ ostap (
     name:ident args:args_list[expr_parser]
     { `FCall (name, args) }
 )
+
+
+let rec pure_expr_parser xs = expression pure_expr_parser xs
+let rec pure_decl_pure_expr_parser = pure_decl pure_expr_parser
+let pure_term_pure_expr_parser = pure_term pure_expr_parser
+let pure_program_parser = program_parser pure_decl_pure_expr_parser pure_term_pure_expr_parser
+
+
+
+(*
+ostap (
+  branch_parser[expr_parser][case_num]: 
+      -"|" pat:constructor[expr_parser] -"->" body:expr_parser  {`DGdef ("caseOfFun" ^ string_of_int(case_num)
+                                                                   , pat, body)}
+  case_of_parser[decls][expr_parser][case_num]:
+    -"case" expr:expr_parser -"of" bs:branch_parser[expr_parser][case_num + 1]+ { 
+  *)   
+
 
 class lexer s =
   let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
@@ -70,10 +108,6 @@ class lexer s =
     method getCNT   = self#get "constructor" cnt
 
   end
-
-let rec pure_parser xs = expression pure_parser xs
-let rec pure_gdef_parser = g_rule pure_parser
-let pure_program_parser = program_parser pure_parser pure_gdef_parser
 
 let resolve_gcalls { fdefs = fdefs; gdefs = gdefs; term = term; } =
   let rec resolve_expr = function

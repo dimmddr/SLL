@@ -21,6 +21,7 @@ let rec toSLL acc gn p a b =
      | `PCtr (n, pargs) -> `GRule (gn $ (n +> (idlist pargs), a) => b) :: acc
      | `PArg name       -> failwith "`PAgrs has inappropiate argument list"
 
+
 ostap (
   dp_g_rule[expr_parser][dp_parser]:
     name:ident -"(" pat:deep_pat[dp_parser] gargs:(-"," ident)* -")"
@@ -35,12 +36,18 @@ ostap (
     pargs:(-"(" list0[dp_parser] -")")? { list_of_opt pargs }
   )
 
-let rec dp_parser xs = deep_pat dp_parser xs
-let rec deep_pat_gdef_parser = dp_g_rule pure_parser dp_parser
-let deep_pat_program_parser = program_parser pure_parser deep_pat_gdef_parser
+ostap (
+  dp_decl[expr_parser][dp_parser]:
+    pure_decl[expr_parser] 
+    | dp_g_rule[expr_parser][dp_parser]
+)
 
-let deep_parse source_text cont =
-  Combinators.unwrap (deep_pat_program_parser (new lexer source_text))
+let rec dp_parser xs = deep_pat dp_parser xs
+let rec dp_decl_parser = dp_decl pure_expr_parser dp_parser
+let dp_program_parser = program_parser dp_decl_parser pure_term_pure_expr_parser
+
+let parse source_text cont =
+  Combinators.unwrap (dp_program_parser (new lexer source_text))
     (fun program -> cont (resolve_gcalls program))
     (fun reason ->
       printf "Parser error:\n%s\n" (Reason.toString (`First 5) `Acc reason))
@@ -52,14 +59,14 @@ let example =
   ^ "isOne(S(S(Z)))"
 
 let verbose_test () =
-  Combinators.unwrap (deep_pat_program_parser (new lexer example))
+  Combinators.unwrap (dp_program_parser (new lexer example))
     (fun program ->
       printf "Parsed program:\n%s\n" (string_of_program string_of_pure program))
     (fun reason ->
       printf "Parser error:\n%s\n" (Reason.toString (`First 3) `Acc reason))
 
 let big_test () =
-  Combinators.unwrap (deep_pat_program_parser (new lexer example))
+  Combinators.unwrap (dp_program_parser (new lexer example))
     (fun program ->
        let result = Interpret.run (resolve_gcalls program) in
        printf "%s\n" (string_of_pure result))
