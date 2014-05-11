@@ -61,6 +61,8 @@ class lexer s =
   let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
   let ident = Str.regexp "[a-z][a-zA-Z0-9]*" in
   let cnt = Str.regexp "[A-Z][a-zA-Z0-9]*" in
+  let _let = Str.regexp "let" in
+  let _in = Str.regexp "in" in
   object (self)
 
     inherit t s
@@ -68,6 +70,8 @@ class lexer s =
     method skip p c = skip s p c
     method getIDENT = self#get "identifier" ident
     method getCNT   = self#get "constructor" cnt
+    method getLET   = self#get "let" _let
+    method getIN    = self#get "in" _in
 
   end
 
